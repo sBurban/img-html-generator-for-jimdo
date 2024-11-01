@@ -1,0 +1,159 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
+    <link rel="stylesheet" href="./borrowed_styles/github-markdown.css" />
+    <style>
+      #form_results {
+        font-family: Consolas, "courier new";
+        color: crimson;
+        background-color: #f1f1f1;
+        padding: 2px;
+        font-size: 105%;
+      }
+
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+
+      .results_hidden {
+        visibility: hidden;
+      }
+    </style>
+    <!-- Include Handlebars from a CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+    <!-- HTML Element Templates -->
+    <script>
+      const templateElemImgFullPageWidth = `<div><img style="width: 100%;" alt="article_image" src="{{imgSource}}"></div><p></p>`;
+      const templateElemImgHalfPageWidth = `
+          <div style="float: left; margin: 4px 10px 10px 0; width: 50%">
+              <img
+                  style="width: 100%"
+                  alt="article_image"
+                  src="{{imgSource}}"
+              />
+          </div>
+          <p></p>
+        `;
+      const templateElemImgNoneWidth = `
+          <div style="float: left; margin: 4px 10px 10px 0;">
+              <img
+                  alt="article_image"
+                  src="{{imgSource}}"
+              />
+          </div>
+          <p></p>
+        `;
+
+      // Compared Selected Button Value to match template
+      const imgTemplateOptions = {
+        "full-page-width": templateElemImgFullPageWidth,
+        "half-page-width": templateElemImgHalfPageWidth,
+        "default-image-width": templateElemImgNoneWidth,
+      };
+
+      function buildImgHtml(values) {
+        const { imgSource, templateOption } = values;
+        const preferredImageTemplate = templateOption
+          ? imgTemplateOptions[templateOption]
+          : templateElemImgFullPageWidth;
+        // compile the template
+        const template = Handlebars.compile(preferredImageTemplate);
+        const generatedText = template({ imgSource });
+        return generatedText;
+      }
+    </script>
+  </head>
+  <body>
+    <div id="form_container">
+      <h1>Image Element Generator for JIMDO Format</h1>
+      <form id="templateForm">
+        <div class="form_field">
+          <label for="imgSource">Enter URL:</label><br />
+          <input
+            type="url"
+            id="imgSource"
+            name="imgSource"
+            required
+          /><br /><br />
+        </div>
+
+        <div class="form_field">
+          <p>Select template type:</p>
+          <input
+            type="radio"
+            id="full-page-width"
+            name="templateOption"
+            value="full-page-width"
+            required
+          />
+          <label for="full-page-width">Full Page Width</label><br />
+
+          <input
+            type="radio"
+            id="half-width-page"
+            name="templateOption"
+            value="half-page-width"
+          />
+          <label for="half-width-page">Half Width Page</label><br />
+
+          <input
+            type="radio"
+            id="none-width"
+            name="templateOption"
+            value="default-image-width"
+          />
+          <label for="none-width">No Width Set</label><br />
+          <br />
+        </div>
+
+        <input type="submit" value="Submit" />
+      </form>
+      <div id="form_results" class="results_hidden">
+        <button id="clipboardBtn" onclick="copyToClipboard()">
+          <span class="material-symbols-outlined"> content_copy </span>
+        </button>
+        <code class="markdown-body"> </code>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    document
+      .getElementById("templateForm")
+      .addEventListener("submit", function (event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        // Get form data
+        const imgSource = document.getElementById("imgSource").value;
+        const templateOption = document.querySelector(
+          'input[name="templateOption"]:checked'
+        ).value;
+
+        // You can add additional logic here to handle the form data
+        const generatedTemplate = buildImgHtml({ imgSource, templateOption });
+
+        // Get container elem to print results
+        const formResultsContainer = document.getElementById("form_results");
+        const codeContainer =
+          formResultsContainer.getElementsByClassName("markdown-body")[0];
+        codeContainer.innerText = generatedTemplate;
+        formResultsContainer.classList.remove("results_hidden");
+      });
+
+    function copyToClipboard() {
+      // Get the text field
+      const clipBtn = document.getElementById("clipboardBtn");
+
+      // Select the text field
+      const codeContainer = document.getElementsByClassName("markdown-body")[0];
+
+      // Copy the text inside the text field
+      const textValue = codeContainer.innerText;
+      navigator.clipboard.writeText(textValue);
+    }
+  </script>
+</html>
