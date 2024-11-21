@@ -22,6 +22,12 @@
       .results_hidden {
         visibility: hidden;
       }
+      .image_input_selector_area {
+        background-color: #fff4c4bf;
+      }
+      textarea {
+        width: 800px;
+      }
     </style>
     <!-- Include Handlebars from a CDN -->
     <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
@@ -65,20 +71,68 @@
         const generatedText = template({ imgSource });
         return generatedText;
       }
+      // Function to adjust the height of the textarea
+      function adjustHeight() {
+        const textarea = document.querySelector("textarea");
+        textarea.style.height = "auto"; // Reset the height
+        textarea.style.height = textarea.scrollHeight + "px"; // Set to the scroll height
+      }
     </script>
   </head>
   <body>
     <div id="form_container">
       <h1>Image Element Generator for JIMDO Format</h1>
       <form id="templateForm">
-        <div class="form_field">
-          <label for="imgSource">Enter URL:</label><br />
-          <input
-            type="url"
-            id="imgSource"
-            name="imgSource"
-            required
-          /><br /><br />
+        <div class="image_input_selector_area">
+          <div class="form_field">
+            <p>How many URLs are you using?</p>
+            <input
+              type="radio"
+              id="singleImgOpt"
+              name="textInputFormat"
+              value="0"
+              checked
+            />
+            <label for="singleImgOpt">Single Image</label><br />
+
+            <input
+              type="radio"
+              id="multiImgOpt"
+              name="textInputFormat"
+              value="1"
+            />
+            <label for="multiImgOpt">Multiple Images</label><br />
+            <br />
+          </div>
+
+          <div class="form_field container-singleImgSource">
+            <label for="singleImgSource">Enter URL:</label><br />
+            <input
+              type="url"
+              id="singleImgSource"
+              name="singleImgSource"
+              placeholder="https://www.google.com..."
+              required
+            /><br /><br />
+          </div>
+          <div class="form_field container-multiImgSource">
+            <label for="multiImgSource">Enter all the URLs:</label><br />
+            <textarea
+              type="text"
+              id="multiImgSource"
+              name="multiImgSource"
+              disabled
+              placeholder="['url1','url2','url3',...]"
+            ></textarea>
+            <!-- <input
+              type="text"
+              id="multiImgSource"
+              name="multiImgSource"
+              disabled
+              placeholder="['url1','url2','url3',...]"
+            /> -->
+            <br /><br />
+          </div>
         </div>
 
         <div class="form_field">
@@ -122,35 +176,100 @@
   </body>
 
   <script>
+    // Static Input Ids for easier JS initialization later
+    const singleInputId = "singleImgSource";
+    const multiInputId = "multiImgSource";
+    // Input container for Multiple Images is default hidden
+    document.querySelector(`.container-${multiInputId}`).hidden = true;
+
+    // Dynamically resizes the Textarea according to Input text
+    document.querySelector("textarea").addEventListener("input", adjustHeight);
+    document.querySelector("textarea").addEventListener("paste", adjustHeight);
+
+    // Initializes "click" behavior to radio buttons selecting 1 or multiple images mode
+    const inputTypeBtns = document.querySelectorAll(
+      '.image_input_selector_area input[type="radio"]'
+    );
+    for (let index = 0; index < inputTypeBtns.length; index++) {
+      const radioBtn = inputTypeBtns[index];
+
+      radioBtn.addEventListener("click", function (event) {
+        // event.preventDefault();
+        const selectedInputType = document.querySelector(
+          '.image_input_selector_area input[type="radio"]:checked'
+        );
+        if (selectedInputType.id === "multiImgOpt") {
+          // display multi image interface
+          document.getElementById(multiInputId).disabled = false;
+          document.querySelector(`.container-${multiInputId}`).hidden = false;
+          document.getElementById(singleInputId).disabled = true;
+          document.querySelector(`.container-${singleInputId}`).hidden = true;
+        } else {
+          //display single image interface
+          document.getElementById(multiInputId).disabled = true;
+          document.querySelector(`.container-${multiInputId}`).hidden = true;
+          document.getElementById(singleInputId).disabled = false;
+          document.querySelector(`.container-${singleInputId}`).hidden = false;
+        }
+      });
+    }
+
+    // Adds Submit logic to submit button
     document
       .getElementById("templateForm")
       .addEventListener("submit", function (event) {
-        event.preventDefault(); // Prevent the default form submission
+        event.preventDefault();
+
+        // Check which if Form submit is for 1 or multiple images
+        const selectedInputType = document.querySelector(
+          '.image_input_selector_area input[type="radio"]:checked'
+        );
+        const selectedTypeIsMultiple = selectedInputType.id === "multiImgOpt";
 
         // Get form data
-        const imgSource = document.getElementById("imgSource").value;
+        let urlArray = [];
+        const imgSource = document.getElementById("singleImgSource").value;
+        const multiImgInputSrc =
+          document.getElementById("multiImgSource").value;
+        if (selectedTypeIsMultiple && multiImgInputSrc) {
+          try {
+            const parsed = JSON.parse(multiImgInputSrc);
+            urlArray = parsed;
+          } catch (error) {
+            console.error("Unable to parse textarea -", error);
+          }
+        } else {
+          urlArray = [imgSource];
+        }
+
+        // Selected Img settings
         const templateOption = document.querySelector(
           'input[name="templateOption"]:checked'
         ).value;
 
         // You can add additional logic here to handle the form data
-        const generatedTemplate = buildImgHtml({ imgSource, templateOption });
+        const printBody = [];
+        for (const urlSrc of urlArray) {
+          const generatedTemplate = buildImgHtml({
+            imgSource: urlSrc,
+            templateOption,
+          });
+          printBody.push(generatedTemplate);
+        }
 
         // Get container elem to print results
         const formResultsContainer = document.getElementById("form_results");
         const codeContainer =
           formResultsContainer.getElementsByClassName("markdown-body")[0];
-        codeContainer.innerText = generatedTemplate;
+        codeContainer.innerText = printBody.join("\r\n\r\n");
         formResultsContainer.classList.remove("results_hidden");
       });
 
     function copyToClipboard() {
       // Get the text field
       const clipBtn = document.getElementById("clipboardBtn");
-
       // Select the text field
       const codeContainer = document.getElementsByClassName("markdown-body")[0];
-
       // Copy the text inside the text field
       const textValue = codeContainer.innerText;
       navigator.clipboard.writeText(textValue);
